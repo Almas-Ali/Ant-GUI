@@ -15,6 +15,9 @@ import subprocess
 import time
 import json
 
+# Add to system path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from utils import *
 
 # Configuration filename
@@ -1104,7 +1107,7 @@ Third line ...
         #
         # Create new popup window
         #
-        self.setting_win_top = Toplevel(root)
+        self.setting_win_top = Toplevel(self.top.parent)
         self.setting_win_top.geometry("750x500")
         self.setting_win_top.resizable(False, False)
 
@@ -1272,7 +1275,8 @@ class Terminal(SearchFunctionality, App):
         # Initialise super classes
         super().__init__(parent, *args, **kwargs)
 
-        parent.bind("<Configure>", self.on_resize)
+        self.parent = parent
+        self.parent.bind("<Configure>", self.on_resize)
 
         sys.stdout = Redirect(self, stream="stdout")
         sys.stderr = Redirect(self, stream="stderr")
