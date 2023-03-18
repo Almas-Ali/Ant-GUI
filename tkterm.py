@@ -137,11 +137,15 @@ class App(tk.Frame):
         self.TerminalScreen['yscrollcommand'] = self.scrollbar.set
         self.scrollbar['command'] = self.TerminalScreen.yview
 
+        self.scrollTimer = 0
         self.frameScrollbar.bind("<Enter>", self.on_scrollbar_enter)
         self.frameScrollbar.bind("<Leave>", self.on_scrollbar_leave)
 
         # Initially map as leave event
         self.frameScrollbar.bind("<Map>", self.on_scrollbar_leave)
+
+        # Flag to indicate if user enters scrollbar area
+        self.isScrollbarEnterEvent = False
 
         ########################################################################
         ## Status bar
@@ -158,8 +162,9 @@ class App(tk.Frame):
 
 
         self.shellMapping = {
-            "bash" : "/bin/sh",
-            "windows" : None
+            "sh"        : "/bin/bash",
+            "bash"      : "/bin/bash",
+            "windows"   : None
         }
 
         ########################################################################
@@ -293,7 +298,7 @@ class App(tk.Frame):
 
         self.style.map('Terminal.Vertical.TScrollbar',
             background=[
-                ('active', "#9DA5B4"), ('pressed', "#9DA5B4"),
+                ('pressed', "#9DA5B4"),
                 ('disabled', self.TerminalColors["bg"])
             ],
             arrowcolor=[
@@ -337,22 +342,57 @@ class App(tk.Frame):
         On focus on scrollbar increase width of scrollbar
         """
 
-        self.style.configure("Terminal.Vertical.TScrollbar",
-            width=10,
-            arrowsize=10
-        )
+        self.isScrollbarEnterEvent = True
+
+        # self.style.configure("Terminal.Vertical.TScrollbar",
+        #     width=10,
+        #     arrowsize=10
+        # )
+
+        self._scrollbar_animation()
 
     def on_scrollbar_leave(self, eventL):
         """
         On focus off from scrollbar decrease width of scrollbar
         """
 
-        self.style.configure("Terminal.Vertical.TScrollbar",
-            width=5,
+        self.isScrollbarEnterEvent = False
 
-            # hack to make arrow invisible
-            arrowsize=-10
-        )
+        # self.style.configure("Terminal.Vertical.TScrollbar",
+        #     width=5,
+
+        #     # hack to make arrow invisible
+        #     arrowsize=-10
+        # )
+
+        self._scrollbar_animation()
+
+    def _scrollbar_animation(self):
+
+        if self.isScrollbarEnterEvent:
+            self.scrollTimer += 3
+
+            if self.scrollTimer <= 12:
+                self.after(100, self._scrollbar_animation)
+            else:
+                self.style.configure("Terminal.Vertical.TScrollbar", arrowsize=10)
+                self.style.map('Terminal.Vertical.TScrollbar',
+                    background=[('active', "#9DA5B4"), ('pressed', "#9DA5B4"), ('disabled', self.TerminalColors["bg"])]
+                )
+                self.style.configure("Terminal.Vertical.TScrollbar", background="#9DA5B4")
+
+        else:
+            self.scrollTimer -= 1
+
+            if self.scrollTimer >= 0:
+                self.after(100, self._scrollbar_animation)
+            else:
+                self.style.configure("Terminal.Vertical.TScrollbar", arrowsize=-10)
+                self.style.configure("Terminal.Vertical.TScrollbar", width=5)
+                self.style.map('Terminal.Vertical.TScrollbar',
+                    background=[('active', "#3A3E48"), ('disabled', self.TerminalColors["bg"])]
+                )
+                self.style.configure("Terminal.Vertical.TScrollbar", background="#3A3E48")
 
     def bind_keys(self):
         self.TerminalScreen.bind("<Return>",            self.do_keyReturn)
@@ -717,6 +757,7 @@ class App(tk.Frame):
             CARET = "\\"
 
         cmd = self.get_cmd()
+        cmd = cmd.strip()
 
         # Empty command - pass
         if cmd == "":
@@ -1351,6 +1392,9 @@ class Terminal(SearchFunctionality, App):
         """ Set current interpreter based on shell selected """
 
         self.INTERPRETER = self.INTERPRETER_BACKENDS[name]
+
+        # Update history storage binding
+        self.commandHistory = self.INTERPRETER.get_history()
 
     def add_interpreter(self, name, interpreter, set_default=True):
         """ Add a new interpreter and optionally set as default """

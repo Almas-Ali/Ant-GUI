@@ -9,6 +9,8 @@ class InterpreterShell(InterpreterInterface):
     def __init__(self, interpreter_path=None):
         super().__init__()
 
+        self.history = []
+
         self.process_options = {
             "shell"                 : True,
             "stdout"                : subprocess.PIPE,
@@ -43,10 +45,19 @@ class InterpreterShell(InterpreterInterface):
                 print(line, file=sys.stderr, end='')
 
         else:
-            os.system("pkill -TERM -P %s" % processThread.pid)
+
+            try:
+                os.system("pkill -TERM -P %s" % processThread.pid)
+                os.system("kill -2 {}".format(processThread.pid))
+                os.system("kill -9 {}".format(processThread.pid))
+            except:
+                pass
 
     def get_return_code(self, process):
         return process.poll()
 
     def get_prompt(self):
         return os.getcwd() + ">> "
+
+    def get_history(self):
+        return self.history
